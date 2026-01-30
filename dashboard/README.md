@@ -11,6 +11,8 @@ This directory is for storing Dashboard JSON files exported from Grafana.
 3. Select "JSON Model"
 4. Copy the content and save as a `.json` file in this directory
 
+You can refer to existing dashboard files at https://github.com/apache/pulsar/tree/master/grafana/dashboards.
+
 ## Configuration
 
 Configure the dashboard list in `config.yaml`:
