@@ -144,7 +144,7 @@ The script automatically switches to the project root, no need to set `cwd` in M
 After configuration, **restart Cursor** to activate the MCP server. AI can then use prometheus_query, prometheus_range_query tools, and access dashboard variables and metrics resources.
 Success screenshot:
 ![img.png](docs/img.png)
-
+![img.png](docs/img2.png)
 
 ## Usage Examples
 
