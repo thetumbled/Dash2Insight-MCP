@@ -1,0 +1,16 @@
+prometheus:
+  url: "http://your-prometheus-server:9090"
+  username: "your_username"  # 可选，如果 Prometheus 需要认证
+  password: "your_password"  # 可选，如果 Prometheus 需要认证
+  timeout: 30
+
+dashboards:
+  - name: "topic-dashboard"
+    path: "./dashboard/your-dashboard.json"
+
+# 日志配置
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file: "dash2insight-mcp.log"  # 日志文件路径，设置为 null 则不写文件
+  max_bytes: 10485760  # 单个日志文件最大字节数 (10MB)
+  backup_count: 5  # 保留的日志文件备份数

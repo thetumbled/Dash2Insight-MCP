@@ -1,0 +1,5 @@
+# MCP Python SDK (需要 Python 3.10+)
+mcp>=1.0.0
+requests>=2.31.0
+pyyaml>=6.0
+pydantic>=2.0.0
