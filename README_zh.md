@@ -145,6 +145,7 @@ dashboards:
 配置完成后，**重启 Cursor**，使 MCP 服务器生效，AI 即可使用 prometheus_query、prometheus_range_query 工具，以及访问 dashboard variables 和 metrics 资源。
 成功截图如下：
 ![img.png](docs/img.png)
+![img.png](docs/img2.png)
 
 
 ## 使用例子
