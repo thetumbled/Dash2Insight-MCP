@@ -56,7 +56,8 @@ class PrometheusServer:
         self.logger = get_logger("server")
         self.logger.info("=" * 60)
         self.logger.info("Dash2Insight-MCP 启动")
-        self.logger.info(f"配置文件: {config_path}")
+        self.logger.info(f"配置文件: {Path(config_path).resolve()}")
+        self.logger.info(f"配置文件所在目录（dashboard 相对路径解析基准）: {Path(config_path).resolve().parent}")
         self.logger.info(f"Prometheus URL: {self.config.prometheus.url}")
         self.logger.info(f"日志级别: {self.config.logging.level}")
         self.logger.info("=" * 60)
@@ -74,13 +75,17 @@ class PrometheusServer:
         self.metrics_resources = {}
         
         self.logger.info(f"加载 {len(self.config.dashboards)} 个 dashboard...")
+        config_dir = Path(config_path).resolve().parent
         for dashboard in self.config.dashboards:
             # 确保 dashboard 路径是绝对路径
             dashboard_path = Path(dashboard.path)
             if not dashboard_path.is_absolute():
-                # 相对于配置文件所在目录
-                config_dir = Path(config_path).parent
+                # 相对于配置文件所在目录（与 README 约定一致）
                 dashboard_path = (config_dir / dashboard_path).resolve()
+                self.logger.info(f"  - {dashboard.name}: 配置 path={dashboard.path} -> 解析为 {dashboard_path}")
+            else:
+                dashboard_path = dashboard_path.resolve()
+                self.logger.info(f"  - {dashboard.name}: 配置 path={dashboard.path} (绝对路径) -> {dashboard_path}")
             
             # Variables resource
             var_resource = VariablesResource(
@@ -99,7 +104,6 @@ class PrometheusServer:
             metrics_uri = metrics_resource.get_uri()
             self.metrics_resources[metrics_uri] = metrics_resource
 
-            self.logger.info(f"  - {dashboard.name}: {dashboard_path}")
             self.logger.debug(f"    Variables URI: {var_uri}")
             self.logger.debug(f"    Metrics URI: {metrics_uri}")
 
