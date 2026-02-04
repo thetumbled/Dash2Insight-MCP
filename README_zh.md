@@ -99,6 +99,8 @@ dashboards:
     path: "./dashboard/pulsar-dashboard.json"
 ```
 
+> **相对路径说明**：`dashboards[].path` 若写相对路径（如 `./dashboard/xxx.json`），会**基于配置文件所在目录**解析，而不是项目根或当前工作目录。例如 `config.yaml` 在 `/opt/dash2insight/config.yaml`，则 `./dashboard/foo.json` 解析为 `/opt/dash2insight/dashboard/foo.json`。
+
 > ⚠️ **注意**: `config.yaml` 包含敏感信息，已被 `.gitignore` 忽略，不会被提交到仓库。
 
 **指定配置文件路径**：可使用项目外的配置文件：

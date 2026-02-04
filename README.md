@@ -98,6 +98,8 @@ dashboards:
     path: "./dashboard/pulsar-dashboard.json"
 ```
 
+> **Relative paths**: If `dashboards[].path` is relative (e.g. `./dashboard/xxx.json`), it is resolved **relative to the directory containing the config file**, not the project root or current working directory. For example, if `config.yaml` is at `/opt/dash2insight/config.yaml`, then `./dashboard/foo.json` resolves to `/opt/dash2insight/dashboard/foo.json`.
+
 > ⚠️ **Note**: `config.yaml` contains sensitive information and is ignored by `.gitignore`.
 
 **Specify a custom config file**: You can use a config file outside the project root by:
