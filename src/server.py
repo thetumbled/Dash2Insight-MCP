@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Dash2Insight-MCP 主入口"""
-import sys
+import argparse
 import asyncio
+import os
+import sys
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -321,23 +323,29 @@ def main():
     # 获取项目根目录（src 目录的父目录）
     project_root = Path(__file__).parent.parent
 
-    # 默认配置文件路径（相对于项目根目录）
-    config_path = project_root / "config.yaml"
+    parser = argparse.ArgumentParser(
+        description="Dash2Insight-MCP: Prometheus/Grafana Dashboard MCP Server"
+    )
+    parser.add_argument(
+        "-c", "--config",
+        metavar="FILE",
+        default=os.environ.get("DASH2INSIGHT_CONFIG"),
+        help="配置文件路径 (默认: 项目根目录下的 config.yaml；也可通过环境变量 DASH2INSIGHT_CONFIG 指定)"
+    )
+    args = parser.parse_args()
 
-    # 如果提供了命令行参数，使用指定的配置文件
-    if len(sys.argv) > 1:
-        user_config_path = Path(sys.argv[1])
-        # 如果是相对路径，相对于项目根目录解析
+    if args.config:
+        user_config_path = Path(args.config)
         if not user_config_path.is_absolute():
-            config_path = project_root / user_config_path
+            config_path = (project_root / user_config_path).resolve()
         else:
             config_path = user_config_path
+    else:
+        config_path = project_root / "config.yaml"
 
-    # 转换为字符串
     config_path = str(config_path)
 
     try:
-        # 创建并运行 server
         server = PrometheusServer(config_path)
         asyncio.run(server.run())
     except KeyboardInterrupt:

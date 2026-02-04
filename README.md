@@ -100,6 +100,10 @@ dashboards:
 
 > ⚠️ **Note**: `config.yaml` contains sensitive information and is ignored by `.gitignore`.
 
+**Specify a custom config file**: You can use a config file outside the project root by:
+- **Command line**: `python -m src.server -c /path/to/config.yaml` or `./scripts/run_server.sh --config /path/to/config.yaml`
+- **Environment variable**: Set `DASH2INSIGHT_CONFIG=/path/to/config.yaml` (useful when the MCP client does not pass args)
+
 ### 3. Configure MCP Server
 
 Configure the MCP Server in AI clients like Cursor or Claude Desktop, pointing to the `server.py` script.
@@ -122,6 +126,7 @@ Using Cursor as an example:
 }
 ```
 > Use absolute paths to avoid environment variable issues. \
+> To use a config file outside the project root, add `"-c", "/path/to/your/config.yaml"` to `args`. \
 > ⚠️ **Option 1 requires setting `cwd`** to the project root, otherwise you'll get: `ModuleNotFoundError: No module named 'src'`.
 
 

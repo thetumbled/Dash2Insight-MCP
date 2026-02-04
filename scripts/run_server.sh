@@ -22,6 +22,7 @@ if ! python -c "import mcp" 2>/dev/null; then
     exit 1
 fi
 
-# 启动 server
+# 启动 server（可通过 -c/--config 指定配置文件，如: ./scripts/run_server.sh --config /path/to/config.yaml）
 echo "启动 Dash2Insight-MCP..." >&2
 python -m src.server "$@"
+

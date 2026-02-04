@@ -101,6 +101,10 @@ dashboards:
 
 > ⚠️ **注意**: `config.yaml` 包含敏感信息，已被 `.gitignore` 忽略，不会被提交到仓库。
 
+**指定配置文件路径**：可使用项目外的配置文件：
+- **命令行**：`python -m src.server -c /path/to/config.yaml` 或 `./scripts/run_server.sh --config /path/to/config.yaml`
+- **环境变量**：设置 `DASH2INSIGHT_CONFIG=/path/to/config.yaml`（在 MCP 客户端不传参时可用）
+
 ### 3. 配置 MCP Server
 
 在Cursor、Claude Desktop 等AI客户端中，配置 MCP Server，指向 `server.py` 脚本。
@@ -123,6 +127,7 @@ dashboards:
 }
 ```
 > 尽量使用绝对路径，避免环境变量问题。 \
+> 若使用项目外的配置文件，在 `args` 中增加 `"-c", "/path/to/your/config.yaml"`。 \
 > ⚠️ **方案 1 须设置 `cwd`** 为项目根目录，否则会报错：`ModuleNotFoundError: No module named 'src'`。
 
 
