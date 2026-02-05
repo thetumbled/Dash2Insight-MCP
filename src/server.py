@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import Resource, Tool, TextContent
+from mcp.types import Resource, Tool, TextContent, Prompt, PromptArgument, PromptMessage, GetPromptResult
 
 # 根据运行方式选择导入方式
 if __name__ == "__main__":
@@ -128,8 +128,13 @@ class PrometheusServer:
             for uri, resource in self.variables_resources.items():
                 resources.append(Resource(
                     uri=uri,
-                    name=f"{resource.dashboard_name} - Variables",
-                    description=resource.get_description(),
+                    name=f"📊 {resource.dashboard_name} - Variables",
+                    description=(
+                        f"【优先阅读】Dashboard '{resource.dashboard_name}' 的变量定义和可用标签值。\n"
+                        "包含所有可用的变量（如 cluster、namespace、pod 等）及其候选值，"
+                        "这些变量可以在 PromQL 查询中使用。\n"
+                        "⚠️ 在构造任何 PromQL 查询前，必须先阅读此资源！"
+                    ),
                     mimeType=resource.get_mime_type()
                 ))
             
@@ -137,8 +142,13 @@ class PrometheusServer:
             for uri, resource in self.metrics_resources.items():
                 resources.append(Resource(
                     uri=uri,
-                    name=f"{resource.dashboard_name} - Metrics",
-                    description=resource.get_description(),
+                    name=f"📈 {resource.dashboard_name} - Metrics",
+                    description=(
+                        f"【优先阅读】Dashboard '{resource.dashboard_name}' 的所有可用监控指标列表。\n"
+                        "包含每个指标的名称、描述、查询模板和用途说明。\n"
+                        "这是构造 PromQL 查询的必读资源，所有可用指标都在这里。\n"
+                        "⚠️ 不要猜测指标名称，直接从此资源中获取准确的指标信息！"
+                    ),
                     mimeType=resource.get_mime_type()
                 ))
             
@@ -170,19 +180,113 @@ class PrometheusServer:
             self.logger.error(f"可用的 URIs: {list(self.variables_resources.keys()) + list(self.metrics_resources.keys())}")
             raise ValueError(f"未找到 resource: {uri_str}")
         
+        @self.server.list_prompts()
+        async def list_prompts() -> list[Prompt]:
+            """列出所有可用的 prompts"""
+            self.logger.debug("收到 list_prompts 请求")
+            return [
+                Prompt(
+                    name="metrics_query_guide",
+                    description="指标查询向导 - 引导你正确地从 Resources 获取指标信息后再进行查询",
+                    arguments=[
+                        PromptArgument(
+                            name="query_goal",
+                            description="你想查询什么指标或监控什么系统状态？",
+                            required=True
+                        ),
+                        PromptArgument(
+                            name="dashboard",
+                            description="要使用哪个 dashboard？（可选，如果不确定可以留空）",
+                            required=False
+                        )
+                    ]
+                )
+            ]
+
+        @self.server.get_prompt()
+        async def get_prompt(name: str, arguments: dict) -> GetPromptResult:
+            """获取 prompt 内容"""
+            self.logger.info(f"获取 prompt: {name}")
+            self.logger.debug(f"参数: {arguments}")
+
+            if name == "metrics_query_guide":
+                query_goal = arguments.get("query_goal", "查询监控指标")
+                dashboard = arguments.get("dashboard", "")
+
+                # 生成指导消息
+                guide_text = (
+                    f"# 📊 指标查询标准流程\n\n"
+                    f"你的查询目标：**{query_goal}**\n\n"
+                    f"## ✅ 正确的查询步骤：\n\n"
+                    f"### 第 1 步：读取可用的 Resources\n"
+                )
+
+                if dashboard:
+                    guide_text += (
+                        f"- 读取 `prometheus://dashboard/{dashboard}/metrics` 获取 **{dashboard}** 的所有可用指标\n"
+                        f"- 读取 `prometheus://dashboard/{dashboard}/variables` 获取可用的变量和标签\n\n"
+                    )
+                else:
+                    guide_text += (
+                        "- 先列出所有 Resources，找到相关的 dashboard\n"
+                        "- 读取对应 dashboard 的 metrics 和 variables resources\n\n"
+                    )
+
+                guide_text += (
+                    "### 第 2 步：从 Resources 中选择合适的指标\n"
+                    "- 仔细阅读指标的描述和用途\n"
+                    "- 找到与你的查询目标最匹配的指标\n"
+                    "- 注意指标的查询模板（expr）和相关变量\n\n"
+                    "### 第 3 步：构造 PromQL 查询\n"
+                    "- 使用从 Resources 中获取的准确指标名称\n"
+                    "- 根据需要添加标签过滤（标签值可从 variables resource 获取）\n"
+                    "- 可以参考指标的查询模板（expr）作为基础\n\n"
+                    "### 第 4 步：执行查询\n"
+                    "- 使用 `prometheus_query` 获取即时数据\n"
+                    "- 或使用 `prometheus_range_query` 获取时间序列数据\n\n"
+                    "## ❌ 避免以下错误做法：\n"
+                    "- ❌ 不要跳过第 1 步，直接猜测指标名称\n"
+                    "- ❌ 不要使用 `prometheus_query` 探索可用指标（如查询 `up` 等通用指标）\n"
+                    "- ❌ 不要假设指标名称，所有指标都应该从 Resources 中获取\n\n"
+                    "## 💡 提示：\n"
+                    "Resources 中的信息已经过验证和整理，直接使用可以节省大量时间并避免错误。\n"
+                )
+
+                return GetPromptResult(
+                    description="指标查询标准流程指南",
+                    messages=[
+                        PromptMessage(
+                            role="user",
+                            content=TextContent(
+                                type="text",
+                                text=guide_text
+                            )
+                        )
+                    ]
+                )
+            else:
+                raise ValueError(f"未知的 prompt: {name}")
+
         @self.server.list_tools()
         async def list_tools() -> list[Tool]:
             """列出所有可用的 tools"""
             return [
                 Tool(
                     name="prometheus_query",
-                    description="执行 Prometheus 即时查询（instant query）。支持标准 PromQL 语法，返回当前时间点或指定时间点的查询结果。",
+                    description=(
+                        "执行 Prometheus 即时查询（instant query）。支持标准 PromQL 语法，返回当前时间点或指定时间点的查询结果。\n\n"
+                        "⚠️ 重要提示：使用此工具前，必须先通过 Resources 获取可用的指标列表和变量信息！\n"
+                        "- 查看 'prometheus://dashboard/{dashboard_name}/metrics' 获取所有可用指标\n"
+                        "- 查看 'prometheus://dashboard/{dashboard_name}/variables' 获取可用的变量和标签\n"
+                        "- 不要盲目探索或猜测指标名称，这会浪费时间并可能失败\n"
+                        "- 从 Resources 中获取的指标名称和查询模板已经过验证，可以直接使用"
+                    ),
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "query": {
                                 "type": "string",
-                                "description": "PromQL 查询语句，例如: up{job=\"prometheus\"} 或 rate(http_requests_total[5m])"
+                                "description": "PromQL 查询语句。指标名称必须从 Resources 中获取，例如: up{job=\"prometheus\"} 或 rate(http_requests_total[5m])"
                             },
                             "time": {
                                 "type": "string",
@@ -194,13 +298,20 @@ class PrometheusServer:
                 ),
                 Tool(
                     name="prometheus_range_query",
-                    description="执行 Prometheus 范围查询（range query）。在指定时间范围内按步长查询，适合绘制时间序列图表。",
+                    description=(
+                        "执行 Prometheus 范围查询（range query）。在指定时间范围内按步长查询，适合绘制时间序列图表。\n\n"
+                        "⚠️ 重要提示：使用此工具前，必须先通过 Resources 获取可用的指标列表和变量信息！\n"
+                        "- 查看 'prometheus://dashboard/{dashboard_name}/metrics' 获取所有可用指标\n"
+                        "- 查看 'prometheus://dashboard/{dashboard_name}/variables' 获取可用的变量和标签\n"
+                        "- 不要盲目探索或猜测指标名称，这会浪费时间并可能失败\n"
+                        "- 从 Resources 中获取的指标名称和查询模板已经过验证，可以直接使用"
+                    ),
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "query": {
                                 "type": "string",
-                                "description": "PromQL 查询语句"
+                                "description": "PromQL 查询语句。指标名称必须从 Resources 中获取"
                             },
                             "start": {
                                 "type": "string",
@@ -235,6 +346,7 @@ class PrometheusServer:
                 self.logger.error(f"未知的 tool: {name}")
                 raise ValueError(f"未知的 tool: {name}")
     
+
     async def _handle_prometheus_query(self, arguments: dict) -> Sequence[TextContent]:
         """处理 prometheus_query tool 调用"""
         query = arguments.get("query")
@@ -246,6 +358,7 @@ class PrometheusServer:
         
         self.logger.info(f"执行 Prometheus 查询: {query[:100]}...")
         
+
         try:
             # 在线程池中执行同步的 Prometheus 查询
             loop = asyncio.get_event_loop()
@@ -282,6 +395,7 @@ class PrometheusServer:
         
         self.logger.info(f"执行 Prometheus 范围查询: {query[:100]}... (start={start}, end={end}, step={step})")
         
+
         try:
             # 在线程池中执行同步的 Prometheus 查询
             loop = asyncio.get_event_loop()
